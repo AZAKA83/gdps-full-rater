@@ -85,8 +85,18 @@ namespace {
 
     // Server API (provided by GDPS Switcher) knows which server is currently active.
     // Its URL is the server's API base; never ask users to type a URL into this mod.
-    std::string activeServerURL() {
-        return ServerAPIEvents::getCurrentServer().url;
+        std::string activeServerURL() {
+        auto url = ServerAPIEvents::getCurrentServer().url;
+        const auto first = url.find_first_not_of(" \t\r\n");
+        if (first == std::string::npos) return {};
+        const auto last = url.find_last_not_of(" \t\r\n");
+        url = url.substr(first, last - first + 1);
+        // Some server profiles may contain only host/path; normalize them for detection.
+        if (url.find("://") == std::string::npos) {
+            url = "https://" + url;
+        }
+        while (!url.empty() && url.back() == '/') url.pop_back();
+        return url;
     }
 
     std::string lowerCopy(std::string value) {
@@ -149,7 +159,9 @@ class $modify(GDPSFullRaterLevelInfoLayer, LevelInfoLayer) {
 
         // Do not show the rating tool on the official Geometry Dash server.
         // GDPS Switcher registers the selected server with Server API.
-        if (!isGDPSURL(activeServerURL())) return true;
+        auto detectedURL = activeServerURL();
+        auto detectedHost = hostFromURL(detectedURL);
+        if (detectedHost == "boomlings.com" || detectedHost.ends_with(".boomlings.com")) return true;
 
         auto menu = CCMenu::create();
         if (!menu) return true;
@@ -181,7 +193,7 @@ class $modify(GDPSFullRaterLevelInfoLayer, LevelInfoLayer) {
 
         auto base = activeServerURL();
         if (!isGDPSURL(base)) {
-            FLAlertLayer::create("GDPS Rater", "No GDPS is active. Select a server in GDPS Switcher first.", "OK")->show();
+            FLAlertLayer::create("GDPS Rater", "GDPS Switcher returned no usable server URL. Select your Glowhost server in GDPS Switcher and reopen this level.", "OK")->show();
             return;
         }
         if (!isSecureBaseURL(base)) {
@@ -250,7 +262,7 @@ class $modify(GDPSFullRaterLevelInfoLayer, LevelInfoLayer) {
     void submitSelectedTier() {
         auto base = activeServerURL();
         if (!isGDPSURL(base)) {
-            FLAlertLayer::create("GDPS Rater", "No GDPS is active. Select a server in GDPS Switcher first.", "OK")->show();
+            FLAlertLayer::create("GDPS Rater", "GDPS Switcher returned no usable server URL. Select your Glowhost server in GDPS Switcher and reopen this level.", "OK")->show();
             return;
         }
         if (!isSecureBaseURL(base)) {
