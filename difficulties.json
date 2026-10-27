@@ -1,0 +1,36 @@
+{
+  "built_in": [
+    {"name": "Auto", "gdps_rate_difficulty": "Auto"},
+    {"name": "Easy", "gdps_rate_difficulty": "Easy"},
+    {"name": "Normal", "gdps_rate_difficulty": "Normal"},
+    {"name": "Hard", "gdps_rate_difficulty": "Hard"},
+    {"name": "Harder", "gdps_rate_difficulty": "Harder"},
+    {"name": "Insane", "gdps_rate_difficulty": "Insane"},
+    {"name": "Easy Demon", "gdps_rate_difficulty": "Demon", "custom_tier": "easy-demon"},
+    {"name": "Medium Demon", "gdps_rate_difficulty": "Demon", "custom_tier": "medium-demon"},
+    {"name": "Hard Demon", "gdps_rate_difficulty": "Demon", "custom_tier": "hard-demon"},
+    {"name": "Insane Demon", "gdps_rate_difficulty": "Demon", "custom_tier": "insane-demon"},
+    {"name": "Extreme Demon", "gdps_rate_difficulty": "Demon", "custom_tier": "extreme-demon"}
+  ],
+  "extra_demon_tiers": [
+    {"name": "Free Demon", "custom_tier": "free-demon"},
+    {"name": "Peaceful Demon", "custom_tier": "peaceful-demon"},
+    {"name": "Simple Demon", "custom_tier": "simple-demon"},
+    {"name": "Casual Demon", "custom_tier": "casual-demon"},
+    {"name": "Mild Demon", "custom_tier": "mild-demon"},
+    {"name": "Moderate Demon", "custom_tier": "moderate-demon"},
+    {"name": "Tricky Demon", "custom_tier": "tricky-demon"},
+    {"name": "Tough Demon", "custom_tier": "tough-demon"},
+    {"name": "Wild Demon", "custom_tier": "wild-demon"},
+    {"name": "Cruel Demon", "custom_tier": "cruel-demon"},
+    {"name": "Crazy Demon", "custom_tier": "crazy-demon"},
+    {"name": "Bizarre Demon", "custom_tier": "bizarre-demon"},
+    {"name": "Brutal Demon", "custom_tier": "brutal-demon"},
+    {"name": "Supreme Demon", "custom_tier": "supreme-demon"},
+    {"name": "Ultimate Demon", "custom_tier": "ultimate-demon"},
+    {"name": "Legendary Demon", "custom_tier": "legendary-demon"},
+    {"name": "Mythical Demon", "custom_tier": "mythical-demon"},
+    {"name": "Infinite Demon", "custom_tier": "infinite-demon"},
+    {"name": "Grandpa Demon", "custom_tier": "grandpa-demon"}
+  ]
+}

@@ -1,0 +1,1 @@
+Development prototype. Not affiliated with RobTop, Geometry Dash, Geode SDK, or any GDPS hosting provider. Not a finished/installable .geode release.
