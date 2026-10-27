@@ -85,18 +85,8 @@ namespace {
 
     // Server API (provided by GDPS Switcher) knows which server is currently active.
     // Its URL is the server's API base; never ask users to type a URL into this mod.
-        std::string activeServerURL() {
-        auto url = ServerAPIEvents::getCurrentServer().url;
-        const auto first = url.find_first_not_of(" \t\r\n");
-        if (first == std::string::npos) return {};
-        const auto last = url.find_last_not_of(" \t\r\n");
-        url = url.substr(first, last - first + 1);
-        // Some server profiles may contain only host/path; normalize them for detection.
-        if (url.find("://") == std::string::npos) {
-            url = "https://" + url;
-        }
-        while (!url.empty() && url.back() == '/') url.pop_back();
-        return url;
+    std::string activeServerURL() {
+        return ServerAPIEvents::getCurrentServer().url;
     }
 
     std::string lowerCopy(std::string value) {
@@ -129,19 +119,29 @@ namespace {
         return lowered.rfind("https://", 0) == 0;
     }
 
-    // Cvolton-based GDPS installations commonly store their API in /database.
-    // Server API may already return that path; add it only when missing.
+    // Server API's url is already the active server's API base. Do not append
+    // /database blindly: hosts such as Glowhost may route API scripts directly
+    // under the GDPS URL. The request code tries /database only after a 404.
     std::string activeAPIBaseURL() {
         auto base = activeServerURL();
         while (!base.empty() && base.back() == '/') base.pop_back();
-        if (base.empty()) return {};
+        return base;
+    }
+
+    bool endsWithDatabasePath(std::string const& base) {
         auto lowered = lowerCopy(base);
-        constexpr char path[] = "/database";
-        if (lowered.size() >= sizeof(path) - 1 &&
-            lowered.compare(lowered.size() - (sizeof(path) - 1), sizeof(path) - 1, path) == 0) {
-            return base;
+        constexpr char suffix[] = "/database";
+        constexpr size_t suffixLength = sizeof(suffix) - 1;
+        return lowered.size() >= suffixLength &&
+            lowered.compare(lowered.size() - suffixLength, suffixLength, suffix) == 0;
+    }
+
+    std::string endpointURL(std::string const& base, char const* endpoint, bool useDatabasePath) {
+        auto endpointBase = base;
+        if (useDatabasePath && !endsWithDatabasePath(endpointBase)) {
+            endpointBase += "/database";
         }
-        return base + path;
+        return endpointBase + "/" + endpoint;
     }
 }
 
@@ -159,9 +159,7 @@ class $modify(GDPSFullRaterLevelInfoLayer, LevelInfoLayer) {
 
         // Do not show the rating tool on the official Geometry Dash server.
         // GDPS Switcher registers the selected server with Server API.
-        auto detectedURL = activeServerURL();
-        auto detectedHost = hostFromURL(detectedURL);
-        if (detectedHost == "boomlings.com" || detectedHost.ends_with(".boomlings.com")) return true;
+        if (!isGDPSURL(activeServerURL())) return true;
 
         auto menu = CCMenu::create();
         if (!menu) return true;
@@ -193,7 +191,7 @@ class $modify(GDPSFullRaterLevelInfoLayer, LevelInfoLayer) {
 
         auto base = activeServerURL();
         if (!isGDPSURL(base)) {
-            FLAlertLayer::create("GDPS Rater", "GDPS Switcher returned no usable server URL. Select your Glowhost server in GDPS Switcher and reopen this level.", "OK")->show();
+            FLAlertLayer::create("GDPS Rater", "No GDPS is active. Select a server in GDPS Switcher first.", "OK")->show();
             return;
         }
         if (!isSecureBaseURL(base)) {
@@ -201,6 +199,10 @@ class $modify(GDPSFullRaterLevelInfoLayer, LevelInfoLayer) {
             return;
         }
 
+        fetchCurrentRating(false);
+    }
+
+    void fetchCurrentRating(bool useDatabasePath) {
         auto apiBase = activeAPIBaseURL();
         if (apiBase.empty()) {
             FLAlertLayer::create("GDPS Rater", "Server API did not provide an active server URL.", "OK")->show();
@@ -209,9 +211,15 @@ class $modify(GDPSFullRaterLevelInfoLayer, LevelInfoLayer) {
         auto req = web::WebRequest();
         req.param("levelID", std::to_string(m_fields->levelID));
         m_fields->request.spawn(
-            "Read GDPS custom rating",
-            req.get(apiBase + "/gdpsFullRaterGet.php"),
-            [this](web::WebResponse response) {
+            useDatabasePath ? "Read GDPS custom rating (/database fallback)" : "Read GDPS custom rating",
+            req.get(endpointURL(apiBase, "gdpsFullRaterGet.php", useDatabasePath)),
+            [this, apiBase, useDatabasePath](web::WebResponse response) {
+                // Different GDPS hosts expose their API scripts at different public paths.
+                // Try the active server root first, then /database only if it returns 404.
+                if (response.code() == 404 && !useDatabasePath && !endsWithDatabasePath(apiBase)) {
+                    fetchCurrentRating(true);
+                    return;
+                }
                 auto text = response.string().unwrapOr("");
                 m_fields->currentTierName = "No custom rating saved";
                 auto key = jsonStringField(text, "key");
@@ -227,7 +235,11 @@ class $modify(GDPSFullRaterLevelInfoLayer, LevelInfoLayer) {
                     m_fields->selectedTier = 0;
                 }
                 if (!response.ok()) {
-                    m_fields->currentTierName = "Could not read current rating; you can still try to submit";
+                    if (response.code() == 404) {
+                        m_fields->currentTierName = "Rating endpoint returned 404 at server root and /database. The host must install/expose the custom API.";
+                    } else {
+                        m_fields->currentTierName = "Could not read current rating (HTTP " + std::to_string(response.code()) + ")";
+                    }
                 }
                 showTierPicker();
             }
@@ -259,10 +271,10 @@ class $modify(GDPSFullRaterLevelInfoLayer, LevelInfoLayer) {
         );
     }
 
-    void submitSelectedTier() {
+    void submitSelectedTier(bool useDatabasePath = false) {
         auto base = activeServerURL();
         if (!isGDPSURL(base)) {
-            FLAlertLayer::create("GDPS Rater", "GDPS Switcher returned no usable server URL. Select your Glowhost server in GDPS Switcher and reopen this level.", "OK")->show();
+            FLAlertLayer::create("GDPS Rater", "No GDPS is active. Select a server in GDPS Switcher first.", "OK")->show();
             return;
         }
         if (!isSecureBaseURL(base)) {
@@ -294,9 +306,13 @@ class $modify(GDPSFullRaterLevelInfoLayer, LevelInfoLayer) {
         req.header("Content-Type", "application/x-www-form-urlencoded");
         req.bodyString(body);
         m_fields->request.spawn(
-            "Save GDPS custom rating",
-            req.post(apiBase + "/gdpsFullRaterSet.php"),
-            [this, selectedName = std::string(tier.name)](web::WebResponse response) {
+            useDatabasePath ? "Save GDPS custom rating (/database fallback)" : "Save GDPS custom rating",
+            req.post(endpointURL(apiBase, "gdpsFullRaterSet.php", useDatabasePath)),
+            [this, apiBase, useDatabasePath, selectedName = std::string(tier.name)](web::WebResponse response) {
+                if (response.code() == 404 && !useDatabasePath && !endsWithDatabasePath(apiBase)) {
+                    submitSelectedTier(true);
+                    return;
+                }
                 auto text = response.string().unwrapOr("");
                 const auto code = jsonStringField(text, "code");
                 if (response.ok() && text.find("\"ok\":true") != std::string::npos) {
@@ -311,6 +327,11 @@ class $modify(GDPSFullRaterLevelInfoLayer, LevelInfoLayer) {
                 }
 
                 std::string message = "The GDPS rejected the rating (HTTP " + std::to_string(response.code()) + ").";
+                if (response.code() == 404) {
+                    message += "\nTried the active server URL directly";
+                    if (!endsWithDatabasePath(apiBase)) message += " and the /database fallback";
+                    message += ". The custom PHP endpoint must be installed and publicly routed by the host.";
+                }
                 if (!code.empty()) message += "\nServer response: " + code;
                 else if (text.empty()) message += "\nNo response received. Check the server URL and PHP add-on installation.";
                 else message += "\nResponse: " + text.substr(0, 180);

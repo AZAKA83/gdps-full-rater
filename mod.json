@@ -6,9 +6,9 @@
   },
   "id": "turki.gdps_full_rater",
   "name": "GDPS Full Rater",
-  "version": "v0.4.2",
+  "version": "v0.4.3",
   "developer": "Custom project",
-  "description": "Detects the active GDPS through Server API and stores custom difficulty tiers on compatible Cvolton servers.",
+  "description": "Uses the active GDPS Switcher server URL and tries the root rating API first, with /database fallback.",
   "tags": [
     "gdps",
     "interface",
