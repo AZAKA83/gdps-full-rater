@@ -6,7 +6,7 @@
   },
   "id": "turki.gdps_full_rater",
   "name": "GDPS Full Rater",
-  "version": "v0.4.0",
+  "version": "v0.4.1",
   "developer": "Custom project",
   "description": "Detects the active GDPS through Server API and stores custom difficulty tiers on compatible Cvolton servers.",
   "tags": [
@@ -17,9 +17,6 @@
   ],
   "dependencies": {
     "geode.node-ids": ">=v1.23.3",
-    "km7dev.server_api": {
-      "version": ">=v4.0.0",
-      "required": true
-    }
+    "km7dev.server_api": ">=v4.0.0"
   }
 }
