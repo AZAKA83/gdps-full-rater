@@ -1,7 +1,9 @@
 #include <Geode/Geode.hpp>
 #include <Geode/modify/LevelInfoLayer.hpp>
 #include <Geode/utils/web.hpp>
+#include <km7dev.server_api/include/ServerAPIEvents.hpp>
 
+#include <algorithm>
 #include <cctype>
 #include <iterator>
 #include <string>
@@ -81,26 +83,55 @@ namespace {
         return json.substr(pos + 1, end - pos - 1);
     }
 
-    std::string configuredBaseURL() {
-        auto base = Mod::get()->getSettingValue<std::string>("server-url");
-        while (!base.empty() && base.back() == '/') base.pop_back();
-        return base;
+    // Server API (provided by GDPS Switcher) knows which server is currently active.
+    // Its URL is the server's API base; never ask users to type a URL into this mod.
+    std::string activeServerURL() {
+        return ServerAPIEvents::getCurrentServer().url;
     }
 
-    // The configured value is the GDPS root (for this user: https://glowhost.us/fpdexekj).
-    // Standard Cvolton APIs live under /database, so append that path internally.
-    std::string configuredAPIBaseURL() {
-        auto base = configuredBaseURL();
+    std::string lowerCopy(std::string value) {
+        std::transform(value.begin(), value.end(), value.begin(), [](unsigned char c) {
+            return static_cast<char>(std::tolower(c));
+        });
+        return value;
+    }
+
+    std::string hostFromURL(std::string const& url) {
+        auto scheme = url.find("://");
+        if (scheme == std::string::npos) return {};
+        auto start = scheme + 3;
+        auto end = url.find_first_of("/:?#", start);
+        auto host = url.substr(start, end == std::string::npos ? std::string::npos : end - start);
+        return lowerCopy(host);
+    }
+
+    bool isGDPSURL(std::string const& url) {
+        auto host = hostFromURL(url);
+        if (host.empty()) return false;
+        // Geometry Dash's official server runs on boomlings.com. A different active
+        // server selected through GDPS Switcher is treated as a GDPS.
+        if (host == "boomlings.com" || host.ends_with(".boomlings.com")) return false;
+        return true;
+    }
+
+    bool isSecureBaseURL(std::string const& url) {
+        auto lowered = lowerCopy(url);
+        return lowered.rfind("https://", 0) == 0;
+    }
+
+    // Cvolton-based GDPS installations commonly store their API in /database.
+    // Server API may already return that path; add it only when missing.
+    std::string activeAPIBaseURL() {
+        auto base = activeServerURL();
+        while (!base.empty() && base.back() == '/') base.pop_back();
+        if (base.empty()) return {};
+        auto lowered = lowerCopy(base);
         constexpr char path[] = "/database";
-        if (base.size() >= sizeof(path) - 1 &&
-            base.compare(base.size() - (sizeof(path) - 1), sizeof(path) - 1, path) == 0) {
+        if (lowered.size() >= sizeof(path) - 1 &&
+            lowered.compare(lowered.size() - (sizeof(path) - 1), sizeof(path) - 1, path) == 0) {
             return base;
         }
-        return base.empty() ? base : base + path;
-    }
-
-    bool isSecureBaseURL(std::string const& base) {
-        return base.rfind("https://", 0) == 0;
+        return base + path;
     }
 }
 
@@ -115,6 +146,10 @@ class $modify(GDPSFullRaterLevelInfoLayer, LevelInfoLayer) {
     bool init(GJGameLevel* level, bool challenge) {
         if (!LevelInfoLayer::init(level, challenge)) return false;
         m_fields->levelID = level ? level->m_levelID : 0;
+
+        // Do not show the rating tool on the official Geometry Dash server.
+        // GDPS Switcher registers the selected server with Server API.
+        if (!isGDPSURL(activeServerURL())) return true;
 
         auto menu = CCMenu::create();
         if (!menu) return true;
@@ -144,18 +179,21 @@ class $modify(GDPSFullRaterLevelInfoLayer, LevelInfoLayer) {
             return;
         }
 
-        auto base = configuredBaseURL();
-        if (base.empty() || !isSecureBaseURL(base)) {
-            FLAlertLayer::create(
-                "GDPS Rater Setup",
-                "Set your GDPS root URL in Geode > Mods > GDPS Full Rater settings. "
-                "The mod adds /database automatically. Your host must have gdpsFullRaterGet.php and gdpsFullRaterSet.php installed in that API directory.",
-                "OK"
-            )->show();
+        auto base = activeServerURL();
+        if (!isGDPSURL(base)) {
+            FLAlertLayer::create("GDPS Rater", "No GDPS is active. Select a server in GDPS Switcher first.", "OK")->show();
+            return;
+        }
+        if (!isSecureBaseURL(base)) {
+            FLAlertLayer::create("GDPS Rater", "This server URL is not HTTPS. Rating requests contain your GDPS account token, so they were blocked for safety.", "OK")->show();
             return;
         }
 
-        auto apiBase = configuredAPIBaseURL();
+        auto apiBase = activeAPIBaseURL();
+        if (apiBase.empty()) {
+            FLAlertLayer::create("GDPS Rater", "Server API did not provide an active server URL.", "OK")->show();
+            return;
+        }
         auto req = web::WebRequest();
         req.param("levelID", std::to_string(m_fields->levelID));
         m_fields->request.spawn(
@@ -210,9 +248,13 @@ class $modify(GDPSFullRaterLevelInfoLayer, LevelInfoLayer) {
     }
 
     void submitSelectedTier() {
-        auto base = configuredBaseURL();
-        if (base.empty() || !isSecureBaseURL(base)) {
-            FLAlertLayer::create("GDPS Rater", "Configure your HTTPS GDPS root URL in the mod settings first.", "OK")->show();
+        auto base = activeServerURL();
+        if (!isGDPSURL(base)) {
+            FLAlertLayer::create("GDPS Rater", "No GDPS is active. Select a server in GDPS Switcher first.", "OK")->show();
+            return;
+        }
+        if (!isSecureBaseURL(base)) {
+            FLAlertLayer::create("GDPS Rater", "This server URL is not HTTPS. Rating requests contain your GDPS account token, so they were blocked for safety.", "OK")->show();
             return;
         }
 
@@ -226,7 +268,7 @@ class $modify(GDPSFullRaterLevelInfoLayer, LevelInfoLayer) {
             return;
         }
 
-        auto apiBase = configuredAPIBaseURL();
+        auto apiBase = activeAPIBaseURL();
         const auto& tier = kTiers[m_fields->selectedTier % std::size(kTiers)];
         const std::string accountID = std::to_string(account->m_accountID);
         const std::string gjp2 = account->m_GJP2.c_str();

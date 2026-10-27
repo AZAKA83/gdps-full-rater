@@ -6,9 +6,9 @@
   },
   "id": "turki.gdps_full_rater",
   "name": "GDPS Full Rater",
-  "version": "v0.3.0",
+  "version": "v0.4.0",
   "developer": "Custom project",
-  "description": "Rates standard and custom difficulty tiers on compatible Cvolton GDPS servers.",
+  "description": "Detects the active GDPS through Server API and stores custom difficulty tiers on compatible Cvolton servers.",
   "tags": [
     "gdps",
     "interface",
@@ -16,14 +16,10 @@
     "online"
   ],
   "dependencies": {
-    "geode.node-ids": ">=v1.23.3"
-  },
-  "settings": {
-    "server-url": {
-      "name": "GDPS Server URL",
-      "description": "Your GDPS base URL (for example, https://glowhost.us/fpdexekj). The mod will use the /database API directory automatically. Do not include a trailing slash.",
-      "type": "string",
-      "default": "https://glowhost.us/fpdexekj"
+    "geode.node-ids": ">=v1.23.3",
+    "km7dev.server_api": {
+      "version": ">=v4.0.0",
+      "required": true
     }
   }
 }
