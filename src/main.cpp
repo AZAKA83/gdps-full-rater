@@ -21,7 +21,7 @@ class $modify(GDPSFullRaterLevelInfoLayer, LevelInfoLayer) {
         menu->setPosition({0.f, 0.f});
         this->addChild(menu, 100);
 
-        auto sprite = ButtonSprite::create("GDPS Rater");
+        auto sprite = ButtonSprite::create("Rate");
         auto button = CCMenuItemSpriteExtra::create(
             sprite,
             this,
@@ -30,7 +30,8 @@ class $modify(GDPSFullRaterLevelInfoLayer, LevelInfoLayer) {
         if (button) {
             button->setID("gdps-full-rater-open");
             // Bottom-left placement; adjust if another mod uses this area.
-            button->setPosition({58.f, 43.f});
+            button->setScale(0.65f);
+            button->setPosition({42.f, 31.f});
             menu->addChild(button);
             menu->updateLayout();
         }
@@ -41,13 +42,11 @@ class $modify(GDPSFullRaterLevelInfoLayer, LevelInfoLayer) {
         std::string levelID = std::to_string(m_fields->levelID);
         std::string body =
             "Level ID: " + levelID +
-            "\n\nBUILT-IN DIFFICULTIES\n"
-            "Auto, Easy, Normal, Hard, Harder, Insane, Easy Demon, Medium Demon, Hard Demon, Insane Demon, Extreme Demon"
-            "\n\nEXTRA DEMON TIERS\n"
-            "Free, Peaceful, Simple, Casual, Mild, Moderate, Tricky, Tough, Wild, Cruel, Crazy, Bizarre, Brutal, "
-            "Supreme, Ultimate, Legendary, Mythical, Infinite, Grandpa"
-            "\n\nThis is a source starter, not a finished rating panel. Standard ratings can use your GDPS's !rate command. "
-            "Extra tiers need the included server adapter to be wired into your GDPS login, permission and database code.";
-        FLAlertLayer::create("GDPS Full Rater", body, "OK")->show();
+            "\n\nCustom tiers:\n"
+            "Free, Peaceful, Simple, Casual, Mild, Moderate\n"
+            "Tricky, Tough, Wild, Cruel, Crazy, Bizarre, Brutal\n"
+            "Supreme, Ultimate, Legendary, Mythical, Infinite, Grandpa\n"
+            "\nSaving custom ratings is not connected yet.";
+        FLAlertLayer::create("GDPS Rater", body, "Close")->show();
     }
 };
