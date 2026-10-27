@@ -5,16 +5,25 @@
     "android": "2.2081"
   },
   "id": "turki.gdps_full_rater",
-  "name": "GDPS Full Rater (Starter)",
-  "version": "v0.1.0",
+  "name": "GDPS Full Rater",
+  "version": "v0.2.0",
   "developer": "Custom project",
-  "description": "Starter UI and server adapter for a GDPS rating system with standard and extra difficulty tiers.",
+  "description": "Rates extra difficulty tiers on compatible Cvolton GDPS servers.",
   "tags": [
     "gdps",
     "interface",
-    "utility"
+    "utility",
+    "online"
   ],
   "dependencies": {
     "geode.node-ids": ">=v1.23.3"
+  },
+  "settings": {
+    "server-url": {
+      "name": "GDPS Server URL",
+      "description": "HTTPS URL of the Cvolton API directory that contains gdpsFullRaterGet.php and gdpsFullRaterSet.php (usually the database folder). Do not include a trailing slash.",
+      "type": "string",
+      "default": ""
+    }
   }
 }

@@ -1,14 +1,92 @@
 #include <Geode/Geode.hpp>
 #include <Geode/modify/LevelInfoLayer.hpp>
+#include <Geode/utils/web.hpp>
+
+#include <cctype>
+#include <iterator>
+#include <string>
+#include <utility>
+#include <vector>
 
 using namespace geode::prelude;
 
-// This starter adds a button on a level's information page. It does NOT submit
-// ratings yet: the GDPS-specific comment/upload API and custom-rating endpoint
-// must be connected for the selected tier to be saved server-side.
+namespace {
+    struct Tier {
+        char const* key;
+        char const* name;
+    };
+
+    // These are the extra custom tiers supported by server-addon/cvolton.
+    // The last entry removes the custom tier instead of setting a rating.
+    constexpr Tier kTiers[] = {
+        {"free-demon", "Free Demon"},
+        {"peaceful-demon", "Peaceful Demon"},
+        {"simple-demon", "Simple Demon"},
+        {"casual-demon", "Casual Demon"},
+        {"mild-demon", "Mild Demon"},
+        {"moderate-demon", "Moderate Demon"},
+        {"tricky-demon", "Tricky Demon"},
+        {"tough-demon", "Tough Demon"},
+        {"wild-demon", "Wild Demon"},
+        {"cruel-demon", "Cruel Demon"},
+        {"crazy-demon", "Crazy Demon"},
+        {"bizarre-demon", "Bizarre Demon"},
+        {"brutal-demon", "Brutal Demon"},
+        {"supreme-demon", "Supreme Demon"},
+        {"ultimate-demon", "Ultimate Demon"},
+        {"legendary-demon", "Legendary Demon"},
+        {"mythical-demon", "Mythical Demon"},
+        {"infinite-demon", "Infinite Demon"},
+        {"grandpa-demon", "Grandpa Demon"},
+        {"unrated", "Remove custom rating"},
+    };
+
+    std::string urlEncode(std::string const& value) {
+        static char const* hex = "0123456789ABCDEF";
+        std::string out;
+        out.reserve(value.size() * 3);
+        for (unsigned char c : value) {
+            if (std::isalnum(c) || c == '-' || c == '_' || c == '.' || c == '~') {
+                out.push_back(static_cast<char>(c));
+            } else {
+                out.push_back('%');
+                out.push_back(hex[(c >> 4) & 0x0F]);
+                out.push_back(hex[c & 0x0F]);
+            }
+        }
+        return out;
+    }
+
+    std::string jsonStringField(std::string const& json, std::string const& field) {
+        const auto needle = std::string("\"") + field + "\"";
+        auto pos = json.find(needle);
+        if (pos == std::string::npos) return {};
+        pos = json.find(':', pos + needle.size());
+        if (pos == std::string::npos) return {};
+        pos = json.find('"', pos + 1);
+        if (pos == std::string::npos) return {};
+        auto end = json.find('"', pos + 1);
+        if (end == std::string::npos) return {};
+        return json.substr(pos + 1, end - pos - 1);
+    }
+
+    std::string configuredBaseURL() {
+        auto base = Mod::get()->getSettingValue<std::string>("server-url");
+        while (!base.empty() && base.back() == '/') base.pop_back();
+        return base;
+    }
+
+    bool isSecureBaseURL(std::string const& base) {
+        return base.rfind("https://", 0) == 0;
+    }
+}
+
 class $modify(GDPSFullRaterLevelInfoLayer, LevelInfoLayer) {
     struct Fields {
         int levelID = 0;
+        size_t selectedTier = 0;
+        std::string currentTierName = "No custom rating saved";
+        async::TaskHolder<web::WebResponse> request;
     };
 
     bool init(GJGameLevel* level, bool challenge) {
@@ -21,7 +99,7 @@ class $modify(GDPSFullRaterLevelInfoLayer, LevelInfoLayer) {
         menu->setPosition({0.f, 0.f});
         this->addChild(menu, 100);
 
-        auto sprite = ButtonSprite::create("Rate");
+        auto sprite = ButtonSprite::create("RATE");
         auto button = CCMenuItemSpriteExtra::create(
             sprite,
             this,
@@ -29,8 +107,7 @@ class $modify(GDPSFullRaterLevelInfoLayer, LevelInfoLayer) {
         );
         if (button) {
             button->setID("gdps-full-rater-open");
-            // Bottom-left placement; adjust if another mod uses this area.
-            button->setScale(0.65f);
+            button->setScale(0.62f);
             button->setPosition({42.f, 31.f});
             menu->addChild(button);
             menu->updateLayout();
@@ -39,14 +116,130 @@ class $modify(GDPSFullRaterLevelInfoLayer, LevelInfoLayer) {
     }
 
     void onOpenFullRater(CCObject*) {
-        std::string levelID = std::to_string(m_fields->levelID);
-        std::string body =
-            "Level ID: " + levelID +
-            "\n\nCustom tiers:\n"
-            "Free, Peaceful, Simple, Casual, Mild, Moderate\n"
-            "Tricky, Tough, Wild, Cruel, Crazy, Bizarre, Brutal\n"
-            "Supreme, Ultimate, Legendary, Mythical, Infinite, Grandpa\n"
-            "\nSaving custom ratings is not connected yet.";
-        FLAlertLayer::create("GDPS Rater", body, "Close")->show();
+        if (m_fields->levelID <= 0) {
+            FLAlertLayer::create("GDPS Rater", "This level does not have a valid online level ID.", "OK")->show();
+            return;
+        }
+
+        auto base = configuredBaseURL();
+        if (base.empty() || !isSecureBaseURL(base)) {
+            FLAlertLayer::create(
+                "GDPS Rater Setup",
+                "Set the HTTPS base URL in Geode > Mods > GDPS Full Rater settings. "
+                "The URL must point to your GDPS API directory (usually the database folder), where gdpsFullRaterGet.php and gdpsFullRaterSet.php are installed.",
+                "OK"
+            )->show();
+            return;
+        }
+
+        auto req = web::WebRequest();
+        req.param("levelID", std::to_string(m_fields->levelID));
+        m_fields->request.spawn(
+            "Read GDPS custom rating",
+            req.get(base + "/gdpsFullRaterGet.php"),
+            [this](web::WebResponse response) {
+                auto text = response.string().unwrapOr("");
+                m_fields->currentTierName = "No custom rating saved";
+                auto key = jsonStringField(text, "key");
+                if (!key.empty()) {
+                    for (size_t i = 0; i < std::size(kTiers); ++i) {
+                        if (key == kTiers[i].key) {
+                            m_fields->selectedTier = i;
+                            m_fields->currentTierName = kTiers[i].name;
+                            break;
+                        }
+                    }
+                } else {
+                    m_fields->selectedTier = 0;
+                }
+                if (!response.ok()) {
+                    m_fields->currentTierName = "Could not read current rating; you can still try to submit";
+                }
+                showTierPicker();
+            }
+        );
+    }
+
+    void showTierPicker() {
+        const auto index = m_fields->selectedTier % std::size(kTiers);
+        const auto& tier = kTiers[index];
+        std::string body = "Level ID: " + std::to_string(m_fields->levelID) +
+            "\nCurrently saved: " + m_fields->currentTierName +
+            "\n\nSelected tier: " + std::string(tier.name) +
+            "\n\nTap Next tier to browse, or Save rating to store this custom tier on the GDPS.\n"
+            "Your GDPS must have the server add-on installed, and your account needs commandRate permission.";
+
+        createQuickPopup(
+            "GDPS Rater",
+            body,
+            "Next tier",
+            "Save rating",
+            [this](FLAlertLayer*, bool save) {
+                if (save) {
+                    submitSelectedTier();
+                } else {
+                    m_fields->selectedTier = (m_fields->selectedTier + 1) % std::size(kTiers);
+                    showTierPicker();
+                }
+            }
+        );
+    }
+
+    void submitSelectedTier() {
+        auto base = configuredBaseURL();
+        if (base.empty() || !isSecureBaseURL(base)) {
+            FLAlertLayer::create("GDPS Rater", "Configure a valid HTTPS GDPS URL in the mod settings first.", "OK")->show();
+            return;
+        }
+
+        auto account = GJAccountManager::sharedState();
+        if (!account || account->m_accountID <= 0 || account->m_GJP2.empty()) {
+            FLAlertLayer::create(
+                "GDPS Rater",
+                "You must be logged into a GDPS account in Geometry Dash before rating. The account token is used only for this HTTPS request.",
+                "OK"
+            )->show();
+            return;
+        }
+
+        const auto& tier = kTiers[m_fields->selectedTier % std::size(kTiers)];
+        const std::string accountID = std::to_string(account->m_accountID);
+        const std::string gjp2 = account->m_GJP2.c_str();
+        const std::string body =
+            "accountID=" + urlEncode(accountID) +
+            "&gjp2=" + urlEncode(gjp2) +
+            "&levelID=" + urlEncode(std::to_string(m_fields->levelID)) +
+            "&tier=" + urlEncode(tier.key);
+
+        auto req = web::WebRequest();
+        req.header("Content-Type", "application/x-www-form-urlencoded");
+        req.bodyString(body);
+        m_fields->request.spawn(
+            "Save GDPS custom rating",
+            req.post(base + "/gdpsFullRaterSet.php"),
+            [this, selectedName = std::string(tier.name)](web::WebResponse response) {
+                auto text = response.string().unwrapOr("");
+                const auto code = jsonStringField(text, "code");
+                if (response.ok() && text.find("\"ok\":true") != std::string::npos) {
+                    if (code == "CUSTOM_TIER_REMOVED") {
+                        m_fields->currentTierName = "No custom rating saved";
+                        FLAlertLayer::create("GDPS Rater", "Custom rating removed from the GDPS database.", "OK")->show();
+                    } else {
+                        m_fields->currentTierName = selectedName;
+                        FLAlertLayer::create("GDPS Rater", "Saved " + selectedName + " to your GDPS database.", "OK")->show();
+                    }
+                    return;
+                }
+
+                std::string message = "The GDPS rejected the rating (HTTP " + std::to_string(response.code()) + ").";
+                if (!code.empty()) message += "\nServer response: " + code;
+                else if (text.empty()) message += "\nNo response received. Check the server URL and PHP add-on installation.";
+                else message += "\nResponse: " + text.substr(0, 180);
+                if (code == "MISSING_COMMAND_RATE_PERMISSION") {
+                    message += "\nGrant your account the Cvolton commandRate permission.";
+                }
+                FLAlertLayer::create("GDPS Rater", message, "OK")->show();
+            }
+        );
     }
 };

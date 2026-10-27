@@ -21,14 +21,12 @@ level difficulty tiers. It does not modify the original Cvolton files.
 
 1. Back up your GDPS files and database first.
 2. Import `schema.sql` into the same MySQL/MariaDB database Cvolton uses.
-3. Copy `gdpsFullRaterSet.php` and `gdpsFullRaterGet.php` into the **server web root**,
+3. Copy `gdpsFullRaterSet.php` and `gdpsFullRaterGet.php` into the **same Cvolton API directory as `rateGJStars20.php`** (often the `database/` directory),
    beside files such as `rateGJStars20.php` and `rateGJDemon21.php`.
 4. Keep PHP errors out of public responses and use HTTPS.
 5. Test the read endpoint in a browser:
    `https://YOUR-GDPS-DOMAIN/gdpsFullRaterGet.php?levelID=1`
-6. Configure the matching Geode mod with the base URL of your GDPS. The mod must
-   POST `accountID`, `gjp2`, `levelID`, and `tier` to `gdpsFullRaterSet.php`, and
-   GET `gdpsFullRaterGet.php?levelID=...` when it needs to display the custom tier.
+6. In Geode > Mods > GDPS Full Rater settings, configure the HTTPS URL of the directory that contains these PHP files (often ending in `/database`), without a trailing slash. The mod POSTs `accountID`, `gjp2`, `levelID`, and `tier` to `gdpsFullRaterSet.php` and GETs `gdpsFullRaterGet.php?levelID=...` to display the saved tier.
 
 ## POST fields for `gdpsFullRaterSet.php`
 
