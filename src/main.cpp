@@ -11,8 +11,8 @@ class $modify(GDPSFullRaterLevelInfoLayer, LevelInfoLayer) {
         int levelID = 0;
     };
 
-    bool init(GJGameLevel* level) {
-        if (!LevelInfoLayer::init(level)) return false;
+    bool init(GJGameLevel* level, bool challenge) {
+        if (!LevelInfoLayer::init(level, challenge)) return false;
         m_fields->levelID = level ? level->m_levelID : 0;
 
         auto menu = CCMenu::create();
