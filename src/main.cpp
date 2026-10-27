@@ -19,6 +19,17 @@ namespace {
     // These are the extra custom tiers supported by server-addon/cvolton.
     // The last entry removes the custom tier instead of setting a rating.
     constexpr Tier kTiers[] = {
+        {"auto", "Auto"},
+        {"easy", "Easy"},
+        {"normal", "Normal"},
+        {"hard", "Hard"},
+        {"harder", "Harder"},
+        {"insane", "Insane"},
+        {"easy-demon", "Easy Demon"},
+        {"medium-demon", "Medium Demon"},
+        {"hard-demon", "Hard Demon"},
+        {"insane-demon", "Insane Demon"},
+        {"extreme-demon", "Extreme Demon"},
         {"free-demon", "Free Demon"},
         {"peaceful-demon", "Peaceful Demon"},
         {"simple-demon", "Simple Demon"},
@@ -76,6 +87,18 @@ namespace {
         return base;
     }
 
+    // The configured value is the GDPS root (for this user: https://glowhost.us/fpdexekj).
+    // Standard Cvolton APIs live under /database, so append that path internally.
+    std::string configuredAPIBaseURL() {
+        auto base = configuredBaseURL();
+        constexpr char path[] = "/database";
+        if (base.size() >= sizeof(path) - 1 &&
+            base.compare(base.size() - (sizeof(path) - 1), sizeof(path) - 1, path) == 0) {
+            return base;
+        }
+        return base.empty() ? base : base + path;
+    }
+
     bool isSecureBaseURL(std::string const& base) {
         return base.rfind("https://", 0) == 0;
     }
@@ -125,18 +148,19 @@ class $modify(GDPSFullRaterLevelInfoLayer, LevelInfoLayer) {
         if (base.empty() || !isSecureBaseURL(base)) {
             FLAlertLayer::create(
                 "GDPS Rater Setup",
-                "Set the HTTPS base URL in Geode > Mods > GDPS Full Rater settings. "
-                "The URL must point to your GDPS API directory (usually the database folder), where gdpsFullRaterGet.php and gdpsFullRaterSet.php are installed.",
+                "Set your GDPS root URL in Geode > Mods > GDPS Full Rater settings. "
+                "The mod adds /database automatically. Your host must have gdpsFullRaterGet.php and gdpsFullRaterSet.php installed in that API directory.",
                 "OK"
             )->show();
             return;
         }
 
+        auto apiBase = configuredAPIBaseURL();
         auto req = web::WebRequest();
         req.param("levelID", std::to_string(m_fields->levelID));
         m_fields->request.spawn(
             "Read GDPS custom rating",
-            req.get(base + "/gdpsFullRaterGet.php"),
+            req.get(apiBase + "/gdpsFullRaterGet.php"),
             [this](web::WebResponse response) {
                 auto text = response.string().unwrapOr("");
                 m_fields->currentTierName = "No custom rating saved";
@@ -188,7 +212,7 @@ class $modify(GDPSFullRaterLevelInfoLayer, LevelInfoLayer) {
     void submitSelectedTier() {
         auto base = configuredBaseURL();
         if (base.empty() || !isSecureBaseURL(base)) {
-            FLAlertLayer::create("GDPS Rater", "Configure a valid HTTPS GDPS URL in the mod settings first.", "OK")->show();
+            FLAlertLayer::create("GDPS Rater", "Configure your HTTPS GDPS root URL in the mod settings first.", "OK")->show();
             return;
         }
 
@@ -202,6 +226,7 @@ class $modify(GDPSFullRaterLevelInfoLayer, LevelInfoLayer) {
             return;
         }
 
+        auto apiBase = configuredAPIBaseURL();
         const auto& tier = kTiers[m_fields->selectedTier % std::size(kTiers)];
         const std::string accountID = std::to_string(account->m_accountID);
         const std::string gjp2 = account->m_GJP2.c_str();
@@ -216,7 +241,7 @@ class $modify(GDPSFullRaterLevelInfoLayer, LevelInfoLayer) {
         req.bodyString(body);
         m_fields->request.spawn(
             "Save GDPS custom rating",
-            req.post(base + "/gdpsFullRaterSet.php"),
+            req.post(apiBase + "/gdpsFullRaterSet.php"),
             [this, selectedName = std::string(tier.name)](web::WebResponse response) {
                 auto text = response.string().unwrapOr("");
                 const auto code = jsonStringField(text, "code");

@@ -1,7 +1,7 @@
 <?php
 /**
  * GDPS Full Rater: custom difficulty setter for Cvolton/GMDprivateServer.
- * Install this file in the Cvolton GDPS web root beside rateGJStars20.php.
+ * Install this file in the Cvolton GDPS database/ directory beside rateGJStars20.php.
  * Requires server-addon/cvolton/schema.sql to be imported first.
  *
  * POST fields:
@@ -13,10 +13,10 @@
  * read gdpsFullRaterGet.php to display custom tiers.
  */
 chdir(__DIR__);
-require_once 'incl/lib/connection.php';
-require_once 'incl/lib/GJPCheck.php';
-require_once 'incl/lib/exploitPatch.php';
-require_once 'incl/lib/mainLib.php';
+require_once __DIR__ . '/../incl/lib/connection.php';
+require_once __DIR__ . '/../incl/lib/GJPCheck.php';
+require_once __DIR__ . '/../incl/lib/exploitPatch.php';
+require_once __DIR__ . '/../incl/lib/mainLib.php';
 
 header('Content-Type: application/json; charset=utf-8');
 
@@ -72,9 +72,20 @@ $tiers = array(
     'grandpa-demon' => 'Grandpa Demon'
 );
 
-// Validate the signed-in account using Cvolton's existing GJP authentication.
-// Do not trust a posted accountID on its own.
-$accountID = GJPCheck::getAccountIDOrDie();
+// Authenticate the submitted account/token pair. Do not call getAccountIDOrDie()
+// here: that helper uses relative includes for scripts under incl/levels, whereas
+// this file is installed under database/.
+$accountRaw = isset($_POST['accountID']) ? (string)$_POST['accountID'] : '';
+$gjp2 = isset($_POST['gjp2']) && is_scalar($_POST['gjp2']) ? (string)$_POST['gjp2'] : '';
+if ($accountRaw === '' || !ctype_digit($accountRaw) || (int)$accountRaw < 1 || $gjp2 === '') {
+    http_response_code(401);
+    gfr_response(false, 'AUTH_REQUIRED');
+}
+$accountID = (int)$accountRaw;
+if (GeneratePass::isGJP2Valid($accountID, $gjp2) != 1) {
+    http_response_code(401);
+    gfr_response(false, 'INVALID_GJP2');
+}
 $gs = new mainLib();
 if (!$gs->checkPermission($accountID, 'commandRate')) {
     http_response_code(403);

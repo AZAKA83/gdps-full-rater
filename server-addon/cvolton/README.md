@@ -1,49 +1,19 @@
-# Cvolton GMDprivateServer adapter (custom tiers)
+# Cvolton GMDprivateServer server add-on
 
-This adapter is targeted at the **Cvolton/GMDprivateServer** PHP + MySQL core.
-It gives the companion Geode mod a persistent server-side value for custom
-level difficulty tiers. It does not modify the original Cvolton files.
+Stores one custom difficulty tier per online level in a separate database table. It does not change standard stars, featured state, or the built-in difficulty.
 
-## Important behavior
+## Install on a Cvolton server
 
-- It uses Cvolton's `GJPCheck::getAccountIDOrDie()` session-token validation.
-- The write endpoint checks Cvolton's `commandRate` permission.
-- Only the explicit tier whitelist is accepted.
-- The read endpoint exposes only the level's custom tier name/key and update time.
-- The table stores one custom tier per level, shared by players who use the
-  matching mod and connect to this GDPS.
-- This custom tier is **not automatically shown in vanilla Geometry Dash**.
-  The matching Geode client must call the read endpoint and render the tier.
-- The adapter does not automatically set built-in stars, feature status, or
-  coin verification. Use the ordinary Cvolton rating workflow for those fields.
+1. Back up the GDPS files and database.
+2. Import `schema.sql` into the same MySQL/MariaDB database the GDPS uses.
+3. Upload `gdpsFullRaterGet.php` and `gdpsFullRaterSet.php` to `database/`, next to `rateGJStars20.php`.
+4. The scripts load core library files from `../incl/lib/`, matching the standard Cvolton folder layout.
+5. Configure the Geode mod with the **base URL** of the GDPS, for example `https://glowhost.us/fpdexekj`. The mod appends `/database` automatically.
+6. Test the read endpoint at `https://YOUR-GDPS-BASE/database/gdpsFullRaterGet.php?levelID=1`. It should return JSON. A 404 means the add-on file is not installed at that path.
+7. Grant your account the Cvolton `commandRate` permission.
 
-## Installation
+The setter accepts whitelisted tier keys only and validates the account's GJP2 token. The custom tier is for compatible clients using this mod. Use Cvolton's normal rating workflow for standard star/difficulty changes.
 
-1. Back up your GDPS files and database first.
-2. Import `schema.sql` into the same MySQL/MariaDB database Cvolton uses.
-3. Copy `gdpsFullRaterSet.php` and `gdpsFullRaterGet.php` into the **same Cvolton API directory as `rateGJStars20.php`** (often the `database/` directory),
-   beside files such as `rateGJStars20.php` and `rateGJDemon21.php`.
-4. Keep PHP errors out of public responses and use HTTPS.
-5. Test the read endpoint in a browser:
-   `https://YOUR-GDPS-DOMAIN/gdpsFullRaterGet.php?levelID=1`
-6. In Geode > Mods > GDPS Full Rater settings, configure the HTTPS URL of the directory that contains these PHP files (often ending in `/database`), without a trailing slash. The mod POSTs `accountID`, `gjp2`, `levelID`, and `tier` to `gdpsFullRaterSet.php` and GETs `gdpsFullRaterGet.php?levelID=...` to display the saved tier.
+## Hosted Glowhost projects
 
-## POST fields for `gdpsFullRaterSet.php`
-
-- `accountID`: account ID; it is validated along with the session token.
-- `gjp2`: the account's usual GDPS login token (`GJPCheck` handles validation).
-- `levelID`: numeric level ID.
-- `tier`: one of the keys in `../difficulties.json`, for example `grandpa-demon`.
-  Use `unrated` to remove the custom tier.
-
-The account must have Cvolton's `commandRate` permission. Do not put account
-passwords, GJP tokens, or server secrets into a public repository or hard-code
-them inside mod source. A finished client implementation must use the game
-session's token in memory and send it only over HTTPS to the configured GDPS.
-
-## Notes / limits
-
-This is a separate custom-tier record. To make the exact custom tier show up in
-Cvolton's stock web dashboard or unmodified GD clients, those components would
-also need changes. It is not an official RobTop rating and is only authoritative
-on the GDPS where this addon is installed.
+Pushing this repository to GitHub does not put PHP files on the Glowhost server. If the dashboard does not provide server-file editing/upload and SQL import for your instance, contact Glowhost support and ask them to deploy these two PHP files and import `schema.sql` for your GDPS. Do not send them your password or account token.

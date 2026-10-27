@@ -1,33 +1,40 @@
-# GDPS Full Rater (real server-backed custom ratings)
+# GDPS Full Rater
 
-This Geode mod lets an authorized moderator store one custom difficulty tier per online level on a compatible Cvolton/GMDprivateServer GDPS. It uses HTTPS calls to the companion PHP endpoints and the currently logged-in game's account token in memory; it does not save credentials into a file.
+A Geode mod plus a Cvolton/GMDprivateServer add-on for storing one **custom tier** per online level. The client includes standard difficulty labels and extra tiers such as Supreme, Ultimate, Infinite, and Grandpa Demon. Custom tiers are stored separately from normal Geometry Dash star/difficulty fields.
 
-## Important: server installation is required
+## Build the Geode mod
 
-The mod cannot save ratings on GitHub by itself. Before rating works, install the server add-on on the **same Cvolton GDPS** your Geometry Dash client connects to:
+Push these project files to GitHub. The included GitHub Actions workflow builds Android64 and Windows variants. The official build action exposes the artifact directory as `steps.build.outputs.build-output`; the workflow uploads that directory directly.
 
-1. Back up the GDPS files and database.
+## GDPS URL configuration
+
+In Geode settings, `GDPS Server URL` is the GDPS **base URL**, not the database path. For this instance it is:
+
+`https://glowhost.us/fpdexekj`
+
+Keep that exact base URL. The mod automatically appends `/database` when calling the custom endpoints. The mod setting doesn't need a trailing slash.
+
+## Required server-side installation
+
+A successful Geode build does NOT deploy PHP endpoints to Glowhost. For real persistent custom ratings on a compatible Cvolton/GMDprivateServer instance:
+
+1. Back up your GDPS files and database.
 2. Import `server-addon/cvolton/schema.sql` into the same MySQL/MariaDB database used by Cvolton.
-3. Copy `server-addon/cvolton/gdpsFullRaterSet.php` and `server-addon/cvolton/gdpsFullRaterGet.php` to the same Cvolton API directory as `rateGJStars20.php` (commonly the `database/` directory), where their relative `incl/lib/` paths resolve.
-4. Keep HTTPS enabled. Do not put GJP2/password tokens or database credentials in this public source repository.
-5. Confirm the endpoints are reachable, for example `https://YOUR-GDPS-URL/database/gdpsFullRaterGet.php?levelID=1`. A valid no-rating response looks like `{"ok":true,"levelID":1,"rating":null}`.
-6. In Geometry Dash, open **Geode → Mods → GDPS Full Rater** and set **GDPS Server URL** to the HTTPS URL of the API directory that contains the two PHP files (commonly ending in `/database`), without a trailing slash.
-7. The account must have Cvolton's `commandRate` permission. The write endpoint checks it on every submission.
+3. Upload `server-addon/cvolton/gdpsFullRaterGet.php` and `server-addon/cvolton/gdpsFullRaterSet.php` into the GDPS `database/` directory beside `rateGJStars20.php`.
+4. Those PHP files require core libraries from `../incl/lib/` relative to `database/`.
+5. Test `https://YOUR-GDPS-BASE/database/gdpsFullRaterGet.php?levelID=1`. If the server returns 404, the PHP endpoint has not been deployed at that path.
+6. The rating account must have Cvolton's `commandRate` permission.
+
+If your Glowhost dashboard has no file-upload or SQL-import option, contact Glowhost support and ask them to install the two PHP files and import the schema for this project. GitHub cannot deploy server files or database changes on its own.
 
 ## In-game use
 
-1. Sign in to your GDPS account inside the GDPS client.
-2. Open an uploaded/online level's info page and tap the compact **RATE** button.
-3. The mod reads the current custom rating from the server.
-4. Tap **Next tier** until the desired extra tier is displayed, then tap **Save rating**. Selecting **Remove custom rating** deletes the stored custom tier.
-5. The mod displays the server's response. `MISSING_COMMAND_RATE_PERMISSION` means the server owner must grant `commandRate`; `LEVEL_NOT_FOUND` means the level ID is not in that GDPS database.
+1. Sign in to your GDPS account inside Geometry Dash.
+2. Open an uploaded/online level's info page and click the compact **RATE** button.
+3. The mod reads the existing custom tier from the server.
+4. Click **Next tier** to cycle through labels and **Save rating** to store the selection. **Remove custom rating** deletes the custom value.
+5. The server checks the account's `commandRate` permission and GJP2 session token.
 
-## What “real rating” means here
+## What “real rating” means
 
-Custom tiers are saved in `gdps_full_rater_custom_difficulties` and are shared across clients using this mod on this GDPS. This is a real server-side record, not a local-only button. However, it is **a custom tier layer**: it does not automatically alter Cvolton's native star count, featured status, demon flag, or the built-in difficulty shown in unmodified Geometry Dash. Those native ratings still need the GDPS's normal rating workflow. Only compatible clients using this mod can display these extra custom tiers unless you also modify other server/client pages.
-
-## Build
-
-The custom tier is a persistent server-side record that compatible clients can read. It does not alter Cvolton’s normal built-in stars/featured/demon fields.
-
-This project builds via the included GitHub Actions workflow. Push the project files to GitHub, wait for the workflow to succeed, and download the Android64 or Windows artifact from the run's **Artifacts** section.
+Once the PHP add-on is deployed, custom tiers are server-backed and shared with other clients using this mod on the same GDPS. They do **not** automatically change standard stars, featured status, or built-in difficulty for vanilla clients; those remain controlled by the GDPS's normal rating workflow.

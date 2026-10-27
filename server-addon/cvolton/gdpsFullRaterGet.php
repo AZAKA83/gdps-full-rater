@@ -1,8 +1,8 @@
 <?php
 /** Public read API for the matching GDPS Full Rater Geode mod. */
 chdir(__DIR__);
-require_once 'incl/lib/connection.php';
-require_once 'incl/lib/exploitPatch.php';
+require_once __DIR__ . '/../incl/lib/connection.php';
+require_once __DIR__ . '/../incl/lib/exploitPatch.php';
 
 header('Content-Type: application/json; charset=utf-8');
 $raw = isset($_GET['levelID']) ? $_GET['levelID'] : '';
@@ -22,10 +22,8 @@ if (!$row) {
 echo json_encode(array(
     'ok' => true,
     'levelID' => $levelID,
-    'rating' => array(
-        'key' => $row['tierKey'],
-        'name' => $row['tierName'],
-        'updatedAt' => (int)$row['updatedAt']
-    )
+    'key' => $row['tierKey'],
+    'name' => $row['tierName'],
+    'updatedAt' => (int)$row['updatedAt']
 ));
 ?>
