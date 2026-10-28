@@ -130,17 +130,28 @@ namespace {
 
     bool endsWithDatabasePath(std::string const& base) {
         auto lowered = lowerCopy(base);
-        constexpr char suffix[] = "/database";
-        constexpr size_t suffixLength = sizeof(suffix) - 1;
-        return lowered.size() >= suffixLength &&
-            lowered.compare(lowered.size() - suffixLength, suffixLength, suffix) == 0;
+
+        constexpr char databaseSuffix[] = "/database";
+        constexpr size_t databaseLength = sizeof(databaseSuffix) - 1;
+        constexpr char dbSuffix[] = "/db";
+        constexpr size_t dbLength = sizeof(dbSuffix) - 1;
+
+        bool hasDatabase = lowered.size() >= databaseLength &&
+            lowered.compare(lowered.size() - databaseLength, databaseLength, databaseSuffix) == 0;
+
+        bool hasDb = lowered.size() >= dbLength &&
+            lowered.compare(lowered.size() - dbLength, dbLength, dbSuffix) == 0;
+
+        return hasDatabase || hasDb;
     }
 
     std::string endpointURL(std::string const& base, char const* endpoint, bool useDatabasePath) {
         auto endpointBase = base;
+
         if (useDatabasePath && !endsWithDatabasePath(endpointBase)) {
-            endpointBase += "/database";
+            endpointBase += "/db";
         }
+
         return endpointBase + "/" + endpoint;
     }
 }
@@ -211,11 +222,11 @@ class $modify(GDPSFullRaterLevelInfoLayer, LevelInfoLayer) {
         auto req = web::WebRequest();
         req.param("levelID", std::to_string(m_fields->levelID));
         m_fields->request.spawn(
-            useDatabasePath ? "Read GDPS custom rating (/database fallback)" : "Read GDPS custom rating",
+            useDatabasePath ? "Read GDPS custom rating (/db fallback)" : "Read GDPS custom rating",
             req.get(endpointURL(apiBase, "gdpsFullRaterGet.php", useDatabasePath)),
             [this, apiBase, useDatabasePath](web::WebResponse response) {
                 // Different GDPS hosts expose their API scripts at different public paths.
-                // Try the active server root first, then /database only if it returns 404.
+                // Try the active server root first, then /db only if it returns 404.
                 if (response.code() == 404 && !useDatabasePath && !endsWithDatabasePath(apiBase)) {
                     fetchCurrentRating(true);
                     return;
@@ -236,7 +247,7 @@ class $modify(GDPSFullRaterLevelInfoLayer, LevelInfoLayer) {
                 }
                 if (!response.ok()) {
                     if (response.code() == 404) {
-                        m_fields->currentTierName = "Rating endpoint returned 404 at server root and /database. The host must install/expose the custom API.";
+                        m_fields->currentTierName = "Rating endpoint returned 404 at server root and /db. The host must install/expose the custom API.";
                     } else {
                         m_fields->currentTierName = "Could not read current rating (HTTP " + std::to_string(response.code()) + ")";
                     }
@@ -306,7 +317,7 @@ class $modify(GDPSFullRaterLevelInfoLayer, LevelInfoLayer) {
         req.header("Content-Type", "application/x-www-form-urlencoded");
         req.bodyString(body);
         m_fields->request.spawn(
-            useDatabasePath ? "Save GDPS custom rating (/database fallback)" : "Save GDPS custom rating",
+            useDatabasePath ? "Save GDPS custom rating (/db fallback)" : "Save GDPS custom rating",
             req.post(endpointURL(apiBase, "gdpsFullRaterSet.php", useDatabasePath)),
             [this, apiBase, useDatabasePath, selectedName = std::string(tier.name)](web::WebResponse response) {
                 if (response.code() == 404 && !useDatabasePath && !endsWithDatabasePath(apiBase)) {
@@ -329,7 +340,7 @@ class $modify(GDPSFullRaterLevelInfoLayer, LevelInfoLayer) {
                 std::string message = "The GDPS rejected the rating (HTTP " + std::to_string(response.code()) + ").";
                 if (response.code() == 404) {
                     message += "\nTried the active server URL directly";
-                    if (!endsWithDatabasePath(apiBase)) message += " and the /database fallback";
+                    if (!endsWithDatabasePath(apiBase)) message += " and the /db fallback";
                     message += ". The custom PHP endpoint must be installed and publicly routed by the host.";
                 }
                 if (!code.empty()) message += "\nServer response: " + code;
