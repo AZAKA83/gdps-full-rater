@@ -18,3 +18,5 @@ The `.github/workflows/build.yml` workflow builds the Windows and Android64 vari
 ## In-game use
 
 Open an uploaded online level on a GDPS selected through GDPS Switcher, click the compact RATE button, select a tier with **Next tier**, and choose **Save rating**. The server add-on validates the Cvolton GJP2 token and `commandRate` permission. Custom tiers are stored separately from standard stars, built-in difficulty, and featured status.
+
+Made By AZAKA83  
