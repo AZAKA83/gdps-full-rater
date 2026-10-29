@@ -1,3 +1,6 @@
+#include <filesystem>
+#include <fstream>
+#include <system_error>
 #include <Geode/Geode.hpp>
 #include <Geode/modify/LevelInfoLayer.hpp>
 #include <Geode/utils/web.hpp>
@@ -84,18 +87,77 @@ namespace {
     }
 
         // A custom URL overrides GDPS Switcher. Leave the setting blank to use Switcher.
-    std::string activeServerURL() {
-        auto custom = Mod::get()->getSettingValue<std::string>("server-url");
-        auto first = custom.find_first_not_of(" \t\r\n");
-        if (first != std::string::npos) {
-            custom.erase(0, first);
-            auto last = custom.find_last_not_of(" \t\r\n");
-            if (last != std::string::npos) custom.erase(last + 1);
-            while (!custom.empty() && custom.back() == '/') {
-                custom.pop_back();
+        std::string activeServerURL() {
+        auto configDir = Mod::get()->getConfigDir();
+        auto filePath = configDir / "file input server gdps.txt";
+
+        std::error_code ec;
+        bool created = false;
+
+        if (!std::filesystem::exists(filePath, ec) && !ec) {
+            std::ofstream output(filePath, std::ios::binary);
+            if (output) {
+                output << "# Paste your full HTTPS GDPS API base URL on the next line.\n";
+                output << "# Example: https://your-public-domain.example/0000/db\n";
+                output << "# Keep all URL symbols exactly as provided.\n";
+                created = static_cast<bool>(output);
             }
-            if (!custom.empty()) return custom;
         }
+
+        if (created) {
+            auto message =
+                std::string("Created your GDPS URL text file:\n") +
+                filePath.string() +
+                "\n\nOpen it in Notepad, paste your full HTTPS API base URL "
+                "on a new line, save the file, and restart Geometry Dash.";
+
+            FLAlertLayer::create(
+                "GDPS Full Rater", message.c_str(), "OK"
+            )->show();
+        }
+
+        auto trimURL = [](std::string value) {
+            auto first = value.find_first_not_of(" \t\r\n");
+            if (first == std::string::npos) return std::string{};
+
+            auto last = value.find_last_not_of(" \t\r\n");
+            value = value.substr(first, last - first + 1);
+
+            while (!value.empty() && value.back() == '/') {
+                value.pop_back();
+            }
+            return value;
+        };
+
+        // The first non-empty, non-comment line in the file takes priority.
+        std::ifstream input(filePath, std::ios::binary);
+        std::string line;
+        while (std::getline(input, line)) {
+            if (!line.empty() && line.back() == '\r') {
+                line.pop_back();
+            }
+
+            // Handle a UTF-8 BOM if the editor adds one.
+            if (line.size() >= 3 &&
+                line.compare(0, 3, "\xEF\xBB\xBF") == 0) {
+                line.erase(0, 3);
+            }
+
+            auto first = line.find_first_not_of(" \t\r\n");
+            if (first == std::string::npos) continue;
+            if (line[first] == '#') continue;
+
+            line = trimURL(line);
+            if (!line.empty()) return line;
+        }
+
+        // Retain the existing settings field as a fallback.
+        auto custom = trimURL(
+            Mod::get()->getSettingValue<std::string>("server-url")
+        );
+        if (!custom.empty()) return custom;
+
+        // Otherwise use the server selected through GDPS Switcher.
         return ServerAPIEvents::getCurrentServer().url;
     }
 

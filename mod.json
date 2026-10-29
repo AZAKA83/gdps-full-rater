@@ -6,7 +6,7 @@
            },
     "id":  "turki.gdps_full_rater",
     "name":  "GDPS Full Rater",
-    "version":  "v0.4.5",
+    "version":  "v0.4.6",
     "developer":  "himmijadndf",
     "description":  "GDPS custom difficulty rater with a configurable server URL.",
     "tags":  [
@@ -23,7 +23,7 @@
                      "server-url":  {
                                         "type":  "string",
                                         "name":  "Custom GDPS Server URL",
-                                        "description":  "Optional. Enter the full HTTPS API base URL, for example https://your-domain.example/0000/db. Leave blank to use GDPS Switcher.",
+                                        "description":  "Preferred: enter symbols in file input server gdps.txt, at the path shown on first launch. The file takes priority. Leave this field blank to use GDPS Switcher when the file has no URL.",
                                         "default":  ""
                                     }
                  }
