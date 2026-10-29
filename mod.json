@@ -6,9 +6,9 @@
            },
     "id":  "turki.gdps_full_rater",
     "name":  "GDPS Full Rater",
-    "version":  "v0.4.6",
+    "version":  "v0.4.7",
     "developer":  "himmijadndf",
-    "description":  "GDPS custom difficulty rater with a configurable server URL.",
+    "description":  "GDPS Full Rater with custom server URL file and Cvolton /database API fallback.",
     "tags":  [
                  "gdps",
                  "interface",
