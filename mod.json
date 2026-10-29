@@ -1,22 +1,22 @@
 {
-  "geode": "5.10.1",
-  "gd": {
-    "win": "2.2081",
-    "android": "2.2081"
-  },
-  "id": "turki.gdps_full_rater",
-  "name": "GDPS Full Rater",
-  "version": "v0.4.3",
-  "developer": "Custom project",
-  "description": "Uses the active GDPS Switcher server URL and tries the root rating API first, with /database fallback.",
-  "tags": [
-    "gdps",
-    "interface",
-    "utility",
-    "online"
-  ],
-  "dependencies": {
-    "geode.node-ids": ">=v1.23.3",
-    "km7dev.server_api": ">=v4.0.0"
-  }
+    "geode":  "5.10.1",
+    "gd":  {
+               "win":  "2.2081",
+               "android":  "2.2081"
+           },
+    "id":  "turki.gdps_full_rater",
+    "name":  "GDPS Full Rater",
+    "version":  "v0.4.4",
+    "developer":  "himmijadndf",
+    "description":  "Uses the active GDPS Switcher server URL and tries the /db rating API fallback after a 404.",
+    "tags":  [
+                 "gdps",
+                 "interface",
+                 "utility",
+                 "online"
+             ],
+    "dependencies":  {
+                         "geode.node-ids":  "\u003e=v1.23.3",
+                         "km7dev.server_api":  "\u003e=v4.0.0"
+                     }
 }

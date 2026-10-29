@@ -120,8 +120,8 @@ namespace {
     }
 
     // Server API's url is already the active server's API base. Do not append
-    // /database blindly: hosts such as Glowhost may route API scripts directly
-    // under the GDPS URL. The request code tries /database only after a 404.
+    // /db blindly: hosts may expose API scripts directly under the GDPS URL.
+    // The request code tries the /db fallback only after a 404.
     std::string activeAPIBaseURL() {
         auto base = activeServerURL();
         while (!base.empty() && base.back() == '/') base.pop_back();
