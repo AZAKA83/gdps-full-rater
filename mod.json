@@ -6,9 +6,9 @@
            },
     "id":  "turki.gdps_full_rater",
     "name":  "GDPS Full Rater",
-    "version":  "v0.4.4",
+    "version":  "v0.4.5",
     "developer":  "himmijadndf",
-    "description":  "Uses the active GDPS Switcher server URL and tries the /db rating API fallback after a 404.",
+    "description":  "GDPS custom difficulty rater with a configurable server URL.",
     "tags":  [
                  "gdps",
                  "interface",
@@ -18,5 +18,13 @@
     "dependencies":  {
                          "geode.node-ids":  "\u003e=v1.23.3",
                          "km7dev.server_api":  "\u003e=v4.0.0"
-                     }
+                     },
+    "settings":  {
+                     "server-url":  {
+                                        "type":  "string",
+                                        "name":  "Custom GDPS Server URL",
+                                        "description":  "Optional. Enter the full HTTPS API base URL, for example https://your-domain.example/0000/db. Leave blank to use GDPS Switcher.",
+                                        "default":  ""
+                                    }
+                 }
 }

@@ -83,9 +83,19 @@ namespace {
         return json.substr(pos + 1, end - pos - 1);
     }
 
-    // Server API (provided by GDPS Switcher) knows which server is currently active.
-    // Its URL is the server's API base; never ask users to type a URL into this mod.
+        // A custom URL overrides GDPS Switcher. Leave the setting blank to use Switcher.
     std::string activeServerURL() {
+        auto custom = Mod::get()->getSettingValue<std::string>("server-url");
+        auto first = custom.find_first_not_of(" \t\r\n");
+        if (first != std::string::npos) {
+            custom.erase(0, first);
+            auto last = custom.find_last_not_of(" \t\r\n");
+            if (last != std::string::npos) custom.erase(last + 1);
+            while (!custom.empty() && custom.back() == '/') {
+                custom.pop_back();
+            }
+            if (!custom.empty()) return custom;
+        }
         return ServerAPIEvents::getCurrentServer().url;
     }
 
@@ -105,6 +115,10 @@ namespace {
         return lowerCopy(host);
     }
 
+    bool hasCustomServerURL() {
+        auto custom = Mod::get()->getSettingValue<std::string>("server-url");
+        return custom.find_first_not_of(" \t\r\n") != std::string::npos;
+    }
     bool isGDPSURL(std::string const& url) {
         auto host = hostFromURL(url);
         if (host.empty()) return false;
@@ -170,7 +184,7 @@ class $modify(GDPSFullRaterLevelInfoLayer, LevelInfoLayer) {
 
         // Do not show the rating tool on the official Geometry Dash server.
         // GDPS Switcher registers the selected server with Server API.
-        if (!isGDPSURL(activeServerURL())) return true;
+        if (!hasCustomServerURL() && !isGDPSURL(activeServerURL())) return true;
 
         auto menu = CCMenu::create();
         if (!menu) return true;
@@ -201,7 +215,7 @@ class $modify(GDPSFullRaterLevelInfoLayer, LevelInfoLayer) {
         }
 
         auto base = activeServerURL();
-        if (!isGDPSURL(base)) {
+        if (!hasCustomServerURL() && !isGDPSURL(base)) {
             FLAlertLayer::create("GDPS Rater", "No GDPS is active. Select a server in GDPS Switcher first.", "OK")->show();
             return;
         }
@@ -284,7 +298,7 @@ class $modify(GDPSFullRaterLevelInfoLayer, LevelInfoLayer) {
 
     void submitSelectedTier(bool useDatabasePath = false) {
         auto base = activeServerURL();
-        if (!isGDPSURL(base)) {
+        if (!hasCustomServerURL() && !isGDPSURL(base)) {
             FLAlertLayer::create("GDPS Rater", "No GDPS is active. Select a server in GDPS Switcher first.", "OK")->show();
             return;
         }
