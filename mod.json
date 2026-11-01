@@ -1,30 +1,61 @@
 {
-    "geode":  "5.10.1",
-    "gd":  {
-               "win":  "2.2081",
-               "android":  "2.2081"
-           },
-    "id":  "turki.gdps_full_rater",
-    "name":  "GDPS Full Rater",
-    "version":  "v0.4.7",
-    "developer":  "himmijadndf",
-    "description":  "GDPS Full Rater with custom server URL file and Cvolton /database API fallback.",
-    "tags":  [
-                 "gdps",
-                 "interface",
-                 "utility",
-                 "online"
-             ],
-    "dependencies":  {
-                         "geode.node-ids":  "\u003e=v1.23.3",
-                         "km7dev.server_api":  "\u003e=v4.0.0"
-                     },
-    "settings":  {
-                     "server-url":  {
-                                        "type":  "string",
-                                        "name":  "Custom GDPS Server URL",
-                                        "description":  "Preferred: enter symbols in file input server gdps.txt, at the path shown on first launch. The file takes priority. Leave this field blank to use GDPS Switcher when the file has no URL.",
-                                        "default":  ""
-                                    }
-                 }
+  "geode": "5.11.2",
+  "gd": {
+    "win": "2.2081",
+    "android": "2.2081",
+    "mac": "2.2081",
+    "ios": "2.2081"
+  },
+  "id": "azaka83.gdps-full-rater",
+  "name": "GDPS Full Rater",
+  "version": "v2.1.1",
+  "developer": "AZAKA83",
+  "description": "GDPS moderator rating interface using original in-game Geometry Dash difficulty faces and persistent server-side ratings.",
+  "links": {
+    "source": "https://github.com/AZAKA83/gdps-full-rater"
+  },
+  "tags": [
+    "online",
+    "utility",
+    "interface",
+    "gdps",
+    "moderation"
+  ],
+  "settings": {
+    "server-settings": {
+      "type": "title",
+      "name": "GDPS API Settings"
+    },
+    "server-url": {
+      "name": "Server URL",
+      "description": "Trusted GDPS HTTPS folder containing gdpsFullRaterGet.php and gdpsFullRaterSet.php, for example https://YOUR-GDPS-DOMAIN/database/ (keep the final slash). This setting is for the Cvolton-compatible PHP add-on, NOT a Supabase project URL. Your GDPS GJP2 token is sent here for server-side verification; use only a server you control or trust.",
+      "type": "string",
+      "default": ""
+    },
+    "extra-settings": {
+      "type": "title",
+      "name": "Extra Settings"
+    },
+    "disable-daily-button": {
+      "name": "Disable Daily Button",
+      "description": "Hide the Set Daily command button.",
+      "type": "bool",
+      "default": true
+    },
+    "disable-weekly-button": {
+      "name": "Disable Weekly Button",
+      "description": "Hide the Set Weekly command button.",
+      "type": "bool",
+      "default": true
+    },
+    "disable-send-only-button": {
+      "name": "Disable Send Only Button",
+      "description": "Hide the Send Only command button.",
+      "type": "bool",
+      "default": true
+    }
+  },
+  "dependencies": {
+    "geode.node-ids": ">=v1.23.3"
+  }
 }

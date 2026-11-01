@@ -1,14 +1,15 @@
-cmake_minimum_required(VERSION 3.29)
+cmake_minimum_required(VERSION 3.21)
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
-project(GDPSFullRater VERSION 0.1.0)
+set(CMAKE_CXX_VISIBILITY_PRESET hidden)
+set(GEODE_PACKAGE_ZSTD ON)
+project(GDPSFullRater VERSION 2.1.1)
 
-file(GLOB_RECURSE SOURCES CONFIGURE_DEPENDS src/*.cpp src/*.hpp)
+file(GLOB_RECURSE SOURCES CONFIGURE_DEPENDS src/*.cpp)
 add_library(${PROJECT_NAME} SHARED ${SOURCES})
 
 if (NOT DEFINED ENV{GEODE_SDK})
-    message(FATAL_ERROR "GEODE_SDK environment variable must point to your installed Geode SDK")
+    message(FATAL_ERROR "Unable to find Geode SDK! Set GEODE_SDK to your local Geode SDK folder.")
 endif()
-
 add_subdirectory($ENV{GEODE_SDK} ${CMAKE_CURRENT_BINARY_DIR}/geode)
 setup_geode_mod(${PROJECT_NAME})

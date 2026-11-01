@@ -1,0 +1,10 @@
+BUILD STATUS — v2.1.1
+=====================
+
+Source fixes applied and PHP endpoints syntax-checked in the local environment.
+
+Not compiled here: Geode SDK and Android/Windows Geode toolchains are not installed in this environment. Run the included GitHub Actions workflow to confirm the C++ build.
+
+Target bindings remain Geometry Dash 2.2081 / Geode 5.11.2. The user's GD 2.209 installation requires a separate compatibility test.
+
+Backend note: this build uses the Cvolton/GMDprivateServer-compatible PHP add-on. It does not call Supabase Edge Functions. Do not enter a Supabase project URL in the Server URL setting.

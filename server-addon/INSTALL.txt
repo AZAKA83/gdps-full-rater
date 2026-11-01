@@ -1,0 +1,33 @@
+RECOMMENDED PATH — INSTALL THE ADD-ON ON THE ACTUAL GDPS SERVER
+===============================================================
+
+This matches the current GDPS Full Rater Geode source and its request format.
+It is for Cvolton/GMDprivateServer-compatible installations only. Other GDPS
+cores (including a custom NitroCore/Vercel server) need a matching backend adapter.
+This PHP add-on is separate from the optional Supabase Edge Functions.
+
+FILES IN THIS FOLDER
+- gdpsFullRaterGet.php
+- gdpsFullRaterSet.php
+- schema.sql
+
+1. BACK UP your GDPS database and server files first.
+2. Upload both PHP files into the Cvolton server's database/ directory, beside
+   rateGJStars20.php. Preserve their exact filenames.
+3. Import schema.sql into the SAME MySQL/MariaDB database used by the GDPS.
+4. Confirm PHP can load ../incl/lib/connection.php, GJPCheck.php, exploitPatch.php,
+   and mainLib.php from these endpoint files.
+5. Test GET at:
+   https://YOUR-GDPS-DOMAIN/database/gdpsFullRaterGet.php?levelID=99999999
+   Expected: JSON with ok:true and rating:null when that level has no custom tier.
+6. Log into a GDPS account with commandRate permission, open an ONLINE level,
+   choose a tier in GDPS Full Rater, and press Save Tier.
+7. To remove the custom tier, select Unrated / Remove and press Save Tier.
+
+SECURITY / LIMITS
+- The setter validates accountID + GJP2 using the server's GeneratePass helper
+  and checks the Cvolton commandRate permission.
+- Never share GJP2 tokens, passwords, or database credentials.
+- The add-on stores a separate difficulty tier; it does not alter built-in stars.
+- This PHP add-on is not automatically compatible with arbitrary Vercel,
+  Supabase, or NitroCore backends.

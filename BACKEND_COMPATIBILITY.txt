@@ -1,0 +1,10 @@
+BACKEND COMPATIBILITY NOTICE
+============================
+
+The RateButton-integrated mod currently targets these PHP routes:
+- GET  {Server URL}/gdpsFullRaterGet.php?levelID={levelID}
+- POST {Server URL}/gdpsFullRaterSet.php
+
+The included PHP implementation is written for Cvolton/GMDprivateServer and must be installed in its database/ directory. The setter validates the player's GJP2 token and checks commandRate server-side.
+
+A Supabase project URL, Supabase REST URL, Vercel URL, or NitroCore URL is NOT automatically compatible. To use one of those backends, the server needs an adapter with the same routes/protocol and GDPS credential/permission validation. Do not put a shared write token or Supabase secret key in the public Geode mod.

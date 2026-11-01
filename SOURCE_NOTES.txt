@@ -1,0 +1,8 @@
+Source inputs:
+- User-uploaded RateButton-main.zip (M336 Rate Button MIT source).
+- Previously prepared GDPS Full Rater Cvolton PHP backend and SQL schema.
+- Original Geometry Dash difficulty frames are referenced by their in-game sprite-frame names, not redistributed as image files.
+
+The project remains source-only and is not yet compiled or runtime-tested. This package is not verified against every commit in AZAKA83/gdps-full-rater.
+
+Integration fixes in v2.1.1: M336 first-use warning restored; JSON handling made whitespace tolerant; GDPS GJP2 auth errors now distinguish rate limiting and inactive accounts; duplicate inherited workflow removed; single build.yml runs source/PHP validation before platform builds.

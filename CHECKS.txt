@@ -1,0 +1,9 @@
+SOURCE CONSISTENCY CHECKS (v2.1.1)
+=================================
+- M336 RateButton popup controls retained and attribution license included.
+- First-use permission warning integrated into LevelInfoLayer hook.
+- UI tier keys and PHP tier allow-list must match.
+- Original Geometry Dash difficulty sprites are referenced by in-game frame name; no external image sheet is bundled.
+- C++ uses C++20.
+- PHP syntax checks run before release.
+- C++ compile / runtime rendering still require GitHub Actions and in-game testing.

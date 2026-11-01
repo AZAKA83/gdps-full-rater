@@ -1,38 +1,65 @@
 name: Build GDPS Full Rater
-
 on:
   workflow_dispatch:
   push:
     branches: ["**"]
 
-permissions:
-  contents: read
-
 jobs:
+  validate-source:
+    name: Validate source and PHP endpoints
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.x"
+      - name: Check difficulty and backend consistency
+        run: python scripts/validate_project.py
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: "8.2"
+      - name: Check PHP endpoint syntax
+        run: |
+          php -l server-addon/cvolton/database/gdpsFullRaterGet.php
+          php -l server-addon/cvolton/database/gdpsFullRaterSet.php
+
   build:
+    needs: validate-source
     strategy:
       fail-fast: false
       matrix:
-        include:
-          - name: Android64
-            runner: ubuntu-latest
-            target: Android64
+        config:
           - name: Windows
-            runner: windows-latest
+            os: windows-latest
             target: Win64
-    name: Build ${{ matrix.name }}
-    runs-on: ${{ matrix.runner }}
+          - name: Android32
+            os: ubuntu-latest
+            target: Android32
+          - name: Android64
+            os: ubuntu-latest
+            target: Android64
+    name: ${{ matrix.config.name }}
+    runs-on: ${{ matrix.config.os }}
     steps:
       - uses: actions/checkout@v4
-      - name: Build Geode mod
-        id: build
+      - name: Build the mod
         uses: geode-sdk/build-geode-mod@main
         with:
-          sdk: given
-          target: ${{ matrix.target }}
-      - name: Upload .geode artifact
-        uses: actions/upload-artifact@v4
+          combine: true
+          target: ${{ matrix.config.target }}
+
+  package:
+    name: Package builds
+    runs-on: ubuntu-latest
+    needs: [build]
+    steps:
+      - uses: geode-sdk/build-geode-mod/combine@main
+        id: combine
         with:
-          name: GDPS-Full-Rater-${{ matrix.name }}
-          path: ${{ steps.build.outputs.build-output }}
+          zstd: true
+          optimize-pngs: true
+      - uses: actions/upload-artifact@v4
+        with:
+          name: GDPS-Full-Rater-Builds
+          path: ${{ steps.combine.outputs.build-output }}
           if-no-files-found: error
